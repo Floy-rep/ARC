@@ -143,7 +143,7 @@ namespace Сoursework
                 listBox1.Items.Clear();
                 while (await SqlReader.ReadAsync())
                 {
-                    listBox1.Items.Add(Convert.ToString(SqlReader["Id"]) + "  " + Convert.ToString(SqlReader["car_name"]));
+                    listBox1.Items.Add("ID: " + Convert.ToString(SqlReader["Id"]) + ", название машины: " + Convert.ToString(SqlReader["car_name"]));
                     comboBox2.Items.Add(Convert.ToString(SqlReader["car_name"]));
                     last_id = Convert.ToInt32(SqlReader["Id"]);
                 }
@@ -208,7 +208,7 @@ namespace Сoursework
             {
                 SqlReader = await SqlCom.ExecuteReaderAsync(); //Сбор данных с таблиц исходы из запроса SqlCom
                 while (await SqlReader.ReadAsync())
-                    listBox2.Items.Add("ID: " + Convert.ToString(SqlReader["Id"]) + ", деталь: Воздушный фильтер, цена: " + Convert.ToString(SqlReader["cost"]) + ", для машины: " + Convert.ToString(SqlReader["vihicle"]) + ", бренд: " + Convert.ToString(SqlReader["brand"]));
+                    listBox2.Items.Add("ID: " + Convert.ToString(SqlReader["Id"]) + ", деталь: Воздушный фильтр, цена: " + Convert.ToString(SqlReader["cost"]) + ", для машины: " + Convert.ToString(SqlReader["vihicle"]) + ", бренд: " + Convert.ToString(SqlReader["brand"]));
                 listBox2.Items.Add("");
             }
             catch (Exception ex)
@@ -286,59 +286,25 @@ namespace Сoursework
 
         }
 
-        private async void comboBox1_TextChanged(object sender, EventArgs e)
+        private string ChooseDetail(string detail) 
         {
-            if (can_change_combo_box)
+            switch (detail)
             {
-                SqlDataReader SqlReader = null;
-                SqlCommand SqlCom = new SqlCommand();
+                case "Радиатор":
+                    detail = "Radiator";
+                    break;
 
-                string detail_name = "";
-                switch (comboBox1.Text)
-                {
-                    case "Радиатор":
-                        detail_name = "Radiator";
-                        break;
+                case "Батарея":
+                    detail = "Battery";
+                    break;
 
-                    case "Батарея":
-                        detail_name = "Battery";
-                        break;
-
-                    case "Воздушный фильтер":
-                        detail_name = "Air filter";
-                        break;
-                }
-
-                SqlCom = new SqlCommand("SELECT * FROM [" + detail_name + "]", SqlCon);
-
-
-                try
-                {
-                    SqlReader = await SqlCom.ExecuteReaderAsync(); //Сбор данных с таблиц исходы из запроса SqlCom
-                    listBox1.Items.Clear();
-                    while (await SqlReader.ReadAsync())
-                    {
-                        last_id = Convert.ToInt32(SqlReader["Id"]);
-                    }
-                    textBox7.Text = Convert.ToString(last_id + 1);
-                }
-
-                catch (Exception ex)
-                {
-                    MessageBox.Show(ex.Message.ToString(), ex.Source.ToString(), MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-
-                finally
-                {
-                    if (SqlReader != null)
-                        SqlReader.Close();
-                }
+                case "Воздушный фильтр":
+                    detail = "Air filter";
+                    break;
             }
-            else
-                can_change_combo_box = true;
+
+            return detail;
         }
-
-
 
         private async void button3_Click(object sender, EventArgs e)
         {
@@ -355,18 +321,26 @@ namespace Сoursework
                     else
                         MessageBox.Show("Введите все данные", "ERROR", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
-                    if (can_change == true)
+
+                    try
                     {
+                        if (can_change == true)
+                        {
+                            SqlCom = new SqlCommand("UPDATE [" + ChooseDetail(comboBox1.Text) + "] SET [cost]=@cost, [vihicle]=@vihicle, [brand]=@brand  WHERE [Id]=@Id", SqlCon);
 
-                        SqlCom = new SqlCommand("UPDATE [" + comboBox1.Text + "SET [cost]=@cost, [vihicle]=@vihicle, [brand]=@brand  WHERE [Id]=@Id", SqlCon);
+                            SqlCom.Parameters.AddWithValue("Id", id_for_bd);
+                            SqlCom.Parameters.AddWithValue("cost", textBox3.Text);
+                            SqlCom.Parameters.AddWithValue("vihicle", comboBox2.Text);
+                            SqlCom.Parameters.AddWithValue("brand", textBox5.Text);
 
-                        SqlCom.Parameters.AddWithValue("Id", id_for_bd);
-                        SqlCom.Parameters.AddWithValue("cost", textBox3.Text);
-                        SqlCom.Parameters.AddWithValue("vihicle", comboBox2.Text);
-                        SqlCom.Parameters.AddWithValue("brand", textBox5.Text);
-                        
-                        await SqlCom.ExecuteNonQueryAsync();
-                    }   
+                            await SqlCom.ExecuteNonQueryAsync();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(ex.Message.ToString(), ex.Source.ToString(), MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                   
                 }
                 else
                     MessageBox.Show("Введите корректные данные", "ERROR", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -377,64 +351,114 @@ namespace Сoursework
             Update_data();
         }
 
+        private List<string> ArrayDeleteByIndexs(string[] elem, int[] ind ) 
+        {
+            List<string> answer = new List<string>();
+
+            for (int i = 0; i < elem.Length; i++) 
+            {
+                if (!ind.Contains(i))
+                    answer.Add(elem[i]);
+            }
+            return answer;
+        }
+
+
         private void listBox2_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (listBox2.Text.Length > 0)
+            if (!string.IsNullOrEmpty(listBox2.Text))
             {
-                can_change_combo_box = false;
-
                 string[] data = listBox2.Text.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
 
-                for (int i = 0; i < data.Length; i++)
-                {
-                    Console.WriteLine(data[i]);
-
-                }
-
-                //string vihicle = "";
-                //string brand = "";
-
-                //for (int i = 0; i < data.Length; i++)
-                //{
-
-                //    if (data[i] == "бренд:")
-                //        brand = data[i + 1];
-
-                //    if (data[i] == "машины:")
-                //    {
-                //        int j = i + 1;
-                //        while (data[j] != "бренд:")
-                //        {
-                //            vihicle += data[j] + " ";
-                //            j++;
-                //        }
-                //        vihicle = vihicle.Substring(0, vihicle.Length - 2);
-                //    }s
-                //} 
-
-                string[] a = data[0].Split(' ');
-                Console.WriteLine(a[0]);
-                Console.WriteLine(a[1]);
-                //Console.WriteLine(a[0]);
-
-                //a = data[0].Split(' ');
-                //Console
-
-                ArrayList Arr = new ArrayList();
-                foreach (string o in data[0].Split(' '))
-                    Arr.Add(o);
-                Arr.RemoveAt(0);
-                textBox7.Text = string.Join(",", Arr.ToArray().Select(o => o.ToString()).ToArray()); // id
-
-                //Console.WriteLine(
-                comboBox2.Text = data[1].Substring(1, data[1].Length - 1); // vihicle
-                comboBox1.Text = data[2].Substring(1, data[2].Length - 1); // detail name
-                textBox3.Text = data[3].Substring(1, data[3].Length - 1); // cost
-                textBox5.Text = data[4].Substring(1, data[4].Length - 1); // brand
-
+                textBox7.Text = string.Join(" ", ArrayDeleteByIndexs(data[0].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries), new int[] {0}).ToArray()); // id 
+                comboBox1.Text = string.Join(" ", ArrayDeleteByIndexs(data[1].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries), new int[] {0}).ToArray()); // detail name
+                textBox3.Text = string.Join(" ", ArrayDeleteByIndexs(data[2].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries), new int[] {0}).ToArray()); // cost
+                comboBox2.Text = string.Join(" ", ArrayDeleteByIndexs(data[3].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries), new int[] {0,1}).ToArray()); // vihicle
+                textBox5.Text = string.Join(" ", ArrayDeleteByIndexs(data[4].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries), new int[] {0}).ToArray()); // brand
 
                 tabControl1.SelectedTab = tabPage2;
             }
+        }
+
+        private void listBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            string[] data = listBox1.Text.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+
+            textBox8.Text = string.Join(" ", ArrayDeleteByIndexs(data[0].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries), new int[] {0}).ToArray());
+            textBox1.Text = string.Join(" ", ArrayDeleteByIndexs(data[1].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries), new int[] {0,1}).ToArray());
+
+            tabControl1.SelectedTab = tabPage1;
+        }
+
+        private async void button2_Click(object sender, EventArgs e)
+        {
+            if (!string.IsNullOrEmpty(comboBox2.Text) && !string.IsNullOrEmpty(comboBox1.Text) && !string.IsNullOrEmpty(textBox5.Text) && !string.IsNullOrEmpty(textBox3.Text)) 
+            {
+                try
+                {
+                    SqlCommand SqlCom = new SqlCommand("INSERT INTO [" + ChooseDetail(comboBox1.Text) + "] (cost, vihicle, brand)VALUES(@cost, @vihicle, @brand)", SqlCon);
+
+                    SqlCom.Parameters.AddWithValue("cost", textBox3.Text);
+                    SqlCom.Parameters.AddWithValue("vihicle", comboBox2.Text);
+                    SqlCom.Parameters.AddWithValue("brand", textBox5.Text);
+
+                    await SqlCom.ExecuteNonQueryAsync();
+
+                    Update_data();
+                }
+
+                catch (Exception ex)
+                { 
+                        MessageBox.Show(ex.Message.ToString(), ex.Source.ToString(), MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private async void button8_Click(object sender, EventArgs e)
+        {
+            bool data_is_true = false;
+            SqlCommand SqlCom = new SqlCommand();
+
+            if (!string.IsNullOrEmpty(comboBox3.Text) && Int32.TryParse(textBox4.Text, out int id_for_bd))
+            {
+                SqlCom = new SqlCommand("SELECT * FROM [" + ChooseDetail(comboBox3.Text) + "] WHERE [Id]=@Id", SqlCon);
+                SqlCom.Parameters.AddWithValue("Id", id_for_bd);
+                data_is_true = true;
+            }
+
+            if (data_is_true)
+            {
+                SqlDataReader SqlReader = null;
+                try
+                {
+                    SqlReader = await SqlCom.ExecuteReaderAsync(); //Сбор данных с таблиц исходы из запроса SqlCom
+
+                    while (await SqlReader.ReadAsync())
+                    {
+                        listBox6.Items.Clear();
+                        listBox6.Items.Add("Найдено:");
+                        listBox6.Items.Add("ID: " + Convert.ToString(SqlReader["Id"]));
+                        listBox6.Items.Add("Деталь: " + comboBox3.Text );
+                        listBox6.Items.Add("Для машины: " + Convert.ToString(SqlReader["vihicle"]));
+                        listBox6.Items.Add("Стоимость: " + Convert.ToString(SqlReader["cost"]));
+                        listBox6.Items.Add("Марка: " + Convert.ToString(SqlReader["brand"]));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message.ToString(), ex.Source.ToString(), MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                finally
+                {
+                    if (SqlReader != null)
+                        SqlReader.Close();
+                }
+            }
+            else
+            {
+                MessageBox.Show("Введите данные", "ERROR", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+
         }
     }
 }
